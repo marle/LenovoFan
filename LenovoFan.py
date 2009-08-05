@@ -15,8 +15,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Run is as root to allow changing fan speed. 
 import os
 import sys
 import gtk
@@ -47,7 +45,7 @@ class Sensors:
     def readCpu(self):
         return int(open(self.cpu).read().strip()[:-3])
 
-    def enableFanControll(self, enable):
+    def enableFanControl(self, enable):
         if not enable and self.enabled:
             self.writeFan(2700)
         file = open(self.fan + 'pwm1_enable', 'w')
@@ -61,7 +59,7 @@ class Sensors:
             print 'Unknown rpm', value
             return False
         if not self.enabled:
-            self.enableFanControll(True)
+            self.enableFanControl(True)
         print self.rpm[value]
         file = open(self.fan + 'pwm1', 'w')
         file.write(self.rpm[value])
@@ -125,7 +123,7 @@ class LenovoFan:
     def check(self):
         temp = self.sensors.readCpu()
         if temp > 65:
-            self.sensors.enableFanControll(False)
+            self.sensors.enableFanControl(False)
             self.popup_menu.bios()
             self.tray.set_tooltip(self.tip + '\nSafety warning: bios control enabled')
         return True
@@ -135,7 +133,7 @@ class LenovoFan:
         return True
         
     def off(self, event):
-        self.sensors.enableFanControll(False)
+        self.sensors.enableFanControl(False)
         self.tray.set_tooltip(self.tip)
         return True
 
@@ -145,7 +143,7 @@ class LenovoFan:
         return True
 
     def exit(self, event):
-        self.sensors.enableFanControll(False)
+        self.sensors.enableFanControl(False)
         gtk.main_quit(0)
 
     def main(self):
