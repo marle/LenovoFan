@@ -1,0 +1,13 @@
+LenovoFan is a simple python script to adjust CPU fan speed. It is designed for
+Lenovo SL laptop series known for their noisy fans.
+
+To use it you must have Tetromino's driver installed
+(http://github.com/tetromino/lenovo-sl-laptop). Script is adding a tray icon
+with a few options to adjust fan speed. Automatic fan speed is not implemented
+yet. Script is monitoring CPU temperature and when it gets hotter than 65 C it's
+switching back to BIOS control of the fan.
+Anyway, I suggest installing GNOME Sensors Applet to monitor temperatures at the
+beggining.
+
+You have to run the script as root to allow modification of pwm1 and pwm1_enable
+files.
