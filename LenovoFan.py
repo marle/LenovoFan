@@ -1,4 +1,5 @@
 #!/usr/bin/python
+#encoding:UTF-8
 #
 #    LenovoFan to set fan speed for Lenovo SL laptop series.
 #    Copyright (C) 2009  Marcin Lewandowski (nicram.el@gmail.com)
@@ -19,6 +20,7 @@ import os
 import sys
 import gtk
 import gobject
+import pynotify
 
 class Sensors:
     
@@ -80,7 +82,7 @@ class PopupMenu:
 
         self.menu = gtk.Menu()
         for rpm in sorted(lenovoFan.sensors.rpm):
-            item = gtk.RadioMenuItem(self.auto, str(rpm) + 'rpm', True)
+            item = gtk.RadioMenuItem(self.auto, str(rpm) + ' rpm', True)
             item.connect('activate', lenovoFan.rpm, rpm)
             self.menu.append(item)
         self.menu.append(self.auto)
@@ -98,9 +100,9 @@ class PopupMenu:
         self.menu.popup(None, None, None, button, time)
 
 class LenovoFan:
-    
-    tip = 'Lenovo SL Series Fan control'
-    
+
+    title = 'LenovoFan'
+
     def __init__(self):
         self.sensors = Sensors()
         self.eventbox = gtk.EventBox()
@@ -109,23 +111,39 @@ class LenovoFan:
         self.tray = gtk.StatusIcon()
         self.tray.set_from_pixbuf(pixbuf)
         self.tray.connect('popup-menu', self.popup)
+        self.tray.connect('activate', self.status)
         
         self.popup_menu = PopupMenu(self)
         
+        if not pynotify.init("LenovoFan"):
+            print "pynotify.init failed"
+        
         while gtk.events_pending():
             gtk.main_iteration(True)
-            
-        self.maintimer = gobject.timeout_add(5000, self.check)
+        
+        self.check()
+        self.maintimer = gobject.timeout_add(10000, self.check)
+        
+    def status(self, icon):
+        if hasattr(self, "notify"):
+            self.notify.close()
+        self.notify = pynotify.Notification(self.title, self.message, "dialog-info")
+        self.notify.show()  
         
     def popup(self, icon, button, time):
         self.popup_menu.show(button, time)
             
     def check(self):
+        rpm = self.sensors.readFan()
+        if rpm < 300:
+            self.sensors.writeFan(2700)
+            pynotify.Notification(self.title, "Fan not working. Setting speed to 2700 rpm.", "dialog-warning").show()
         temp = self.sensors.readCpu()
-        if temp > 65:
+        if temp >= 65:
             self.sensors.enableFanControl(False)
             self.popup_menu.bios()
-            self.tray.set_tooltip(self.tip + '\nSafety warning: bios control enabled')
+            pynotify.Notification(self.title, "CPU temperature: 65°C.\n\nSwitching to BIOS control.", "dialog-warning").show()
+        self.message = 'CPU: ' + str(temp) + '°C\nFan: ' + str(rpm) + ' rpm'
         return True
 
     def auto(self, event):
@@ -134,12 +152,12 @@ class LenovoFan:
         
     def off(self, event):
         self.sensors.enableFanControl(False)
-        self.tray.set_tooltip(self.tip)
+        self.tray.set_tooltip('Bios control')
         return True
 
     def rpm(self, event, value):
         if self.sensors.writeFan(value):
-            self.tray.set_tooltip(self.tip + '\nSet to ' + str(value) + 'rpm')
+            self.tray.set_tooltip(str(value) + ' rpm')
         return True
 
     def exit(self, event):
@@ -150,5 +168,4 @@ class LenovoFan:
         gtk.main()
 
 if __name__ == "__main__":
-    print 'starting...'
     LenovoFan().main()
