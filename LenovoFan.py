@@ -54,7 +54,6 @@ class Sensors:
         file.write("1" if enable else "0")
         file.close()
         self.enabled = enable
-        return
     
     def writeFan(self, value):
         if not value in self.rpm:
@@ -128,7 +127,7 @@ class LenovoFan:
         if hasattr(self, "notify"):
             self.notify.close()
         self.notify = pynotify.Notification(self.title, self.message, "dialog-info")
-        self.notify.show()  
+        self.notify.show()
         
     def popup(self, icon, button, time):
         self.popup_menu.show(button, time)
@@ -139,7 +138,7 @@ class LenovoFan:
             self.sensors.writeFan(2700)
             pynotify.Notification(self.title, "Fan not working. Setting speed to 2700 rpm.", "dialog-warning").show()
         temp = self.sensors.readCpu()
-        if temp >= 65:
+        if self.sensors.enabled and temp >= 65:
             self.sensors.enableFanControl(False)
             self.popup_menu.bios()
             pynotify.Notification(self.title, "CPU temperature: 65°C.\n\nSwitching to BIOS control.", "dialog-warning").show()
