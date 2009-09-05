@@ -3,8 +3,8 @@ Lenovo SL laptop series known for their noisy fans.
 
 To use it you must have Tetromino's driver installed:
 http://github.com/tetromino/lenovo-sl-laptop. Script is adding a tray icon with
-a few options to adjust fan speed. Automatic fan speed is not yet implemented.
-Script is monitoring CPU temperature and when it gets hotter than 65 C it
+a few options to adjust fan speed. By default automatic fan control is enabled.
+Script is monitoring CPU temperature and when it gets hotter than 75 C it
 switches back to BIOS control of the fan.
 Anyway, I suggest installing GNOME Sensors Applet to monitor temperatures at the
 beginning.
