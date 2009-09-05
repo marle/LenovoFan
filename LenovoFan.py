@@ -21,12 +21,13 @@ import sys
 import gtk
 import gobject
 import pynotify
+import time
 
 class Sensors:
     
     fan = None
     cpu = '/sys/devices/LNXSYSTM:00/LNXTHERM:00/LNXTHERM:01/thermal_zone/temp'
-    rpm = {1500: "70", 1800: "82", 2100: "96", 2400: "111", 2700: "127"}
+    rpm = {1600: "74", 1800: "82", 2100: "96", 2400: "111", 2700: "127", 2900: "139"}
     enabled = False
     
     def __init__(self):
@@ -50,20 +51,27 @@ class Sensors:
     def enableFanControl(self, enable):
         if not enable and self.enabled:
             self.writeFan(2700)
+        time.sleep(0.2)
         file = open(self.fan + 'pwm1_enable', 'w')
         file.write("1" if enable else "0")
         file.close()
         self.enabled = enable
-    
+
     def writeFan(self, value):
-        if not value in self.rpm:
-            print 'Unknown rpm', value
-            return False
+        if value in self.rpm:
+            r = self.rpm[value]
+        else:
+            s = max(filter(lambda x:x<value, self.rpm))
+            e = min(filter(lambda x:x>value, self.rpm))
+            r = str((value-s) * (int(self.rpm[e])-int(self.rpm[s])) / (e-s) + int(self.rpm[s]))
+        
+        print r
+        
         if not self.enabled:
             self.enableFanControl(True)
-        print self.rpm[value]
+        
         file = open(self.fan + 'pwm1', 'w')
-        file.write(self.rpm[value])
+        file.write(r)
         file.close()
         return True
 
@@ -90,7 +98,7 @@ class PopupMenu:
         self.menu.append(self.exit)
         self.menu.show_all()
         
-        self.bios()
+        self.auto.set_active(True)
 
     def bios(self):
         self.off.set_active(True)
@@ -101,6 +109,12 @@ class PopupMenu:
 class LenovoFan:
 
     title = 'LenovoFan'
+    autoRpm = False
+    
+    minTemp = 45
+    minRpm = 1600
+    maxTemp = 65
+    maxRpm = 2900
 
     def __init__(self):
         self.sensors = Sensors()
@@ -121,7 +135,7 @@ class LenovoFan:
             gtk.main_iteration(True)
         
         self.check()
-        self.maintimer = gobject.timeout_add(10000, self.check)
+        self.maintimer = gobject.timeout_add(5000, self.check)
         
     def status(self, icon):
         if hasattr(self, "notify"):
@@ -138,23 +152,28 @@ class LenovoFan:
             self.sensors.writeFan(2700)
             pynotify.Notification(self.title, "Fan not working. Setting speed to 2700 rpm.", "dialog-warning").show()
         temp = self.sensors.readCpu()
-        if self.sensors.enabled and temp >= 65:
+        if self.autoRpm:
+            self.sensors.writeFan((temp-self.minTemp) * (self.maxRpm-self.minRpm) / (self.maxTemp-self.minTemp) + self.minRpm)
+        if self.sensors.enabled and temp >= 75:
             self.sensors.enableFanControl(False)
             self.popup_menu.bios()
-            pynotify.Notification(self.title, "CPU temperature: 65°C.\n\nSwitching to BIOS control.", "dialog-warning").show()
+            pynotify.Notification(self.title, "CPU temperature: 75°C.\n\nSwitching to BIOS control.", "dialog-warning").show()
         self.message = 'CPU: ' + str(temp) + '°C\nFan: ' + str(rpm) + ' rpm'
         return True
 
     def auto(self, event):
-        print 'not implemented'
+        self.autoRpm = True
+        self.tray.set_tooltip('Automatic fan control')
         return True
         
     def off(self, event):
+        self.autoRpm = False
         self.sensors.enableFanControl(False)
         self.tray.set_tooltip('Bios control')
         return True
 
     def rpm(self, event, value):
+        self.autoRpm = False
         if self.sensors.writeFan(value):
             self.tray.set_tooltip(str(value) + ' rpm')
         return True
