@@ -153,7 +153,12 @@ class LenovoFan:
             pynotify.Notification(self.title, "Fan not working. Setting speed to 2700 rpm.", "dialog-warning").show()
         temp = self.sensors.readCpu()
         if self.autoRpm:
-            self.sensors.writeFan((temp-self.minTemp) * (self.maxRpm-self.minRpm) / (self.maxTemp-self.minTemp) + self.minRpm)
+            if temp < self.minTemp:
+                self.sensors.writeFan(self.minRpm)
+            elif temp > self.maxTemp:
+                self.sensors.writeFan(self.maxRpm)
+            else:
+                self.sensors.writeFan((temp-self.minTemp) * (self.maxRpm-self.minRpm) / (self.maxTemp-self.minTemp) + self.minRpm)
         if self.sensors.enabled and temp >= 75:
             self.sensors.enableFanControl(False)
             self.popup_menu.bios()
