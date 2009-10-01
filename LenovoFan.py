@@ -51,7 +51,7 @@ class Sensors:
     def enableFanControl(self, enable):
         if not enable and self.enabled:
             self.writeFan(2700)
-        time.sleep(0.2)
+            self.readFan()
         file = open(self.fan + 'pwm1_enable', 'w')
         file.write("1" if enable else "0")
         file.close()
@@ -149,8 +149,11 @@ class LenovoFan:
     def check(self):
         rpm = self.sensors.readFan()
         if rpm < 300:
-            self.sensors.writeFan(2700)
-            pynotify.Notification(self.title, "Fan not working. Setting speed to 2700 rpm.", "dialog-warning").show()
+            if self.autoRpm:
+                pynotify.Notification(self.title, "Fan not working.", "dialog-warning").show()
+            else:
+                self.sensors.writeFan(2700)
+                pynotify.Notification(self.title, "Fan not working. Setting speed to 2700 rpm.", "dialog-warning").show()
         temp = self.sensors.readCpu()
         if self.autoRpm:
             if temp < self.minTemp:
